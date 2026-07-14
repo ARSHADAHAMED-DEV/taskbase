@@ -10,11 +10,16 @@ export default async function DocsPage() {
     .order("updated_at", { ascending: false });
 
   return (
-    <div className="mx-auto max-w-3xl p-6">
-      <div className="mb-5 flex items-center justify-between">
-        <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-          Docs
-        </h1>
+    <div className="mx-auto max-w-4xl p-6">
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100">
+            Docs
+          </h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            ADRs, dev logs and runbooks in markdown
+          </p>
+        </div>
         <form action={createDocAction}>
           <button className="rounded-lg bg-lime-400 px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-lime-300">
             + New doc
