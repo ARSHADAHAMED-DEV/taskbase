@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { updateTaskStatus } from "./actions";
+import { useState, useTransition, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { updateTaskStatus, createTask } from "./actions";
 
 type Task = {
   id: string;
@@ -26,9 +27,19 @@ export default function TaskBoard({
   columns: readonly Column[];
   tasks: Task[];
 }) {
+  const router = useRouter();
   const [items, setItems] = useState(tasks);
   const [dragId, setDragId] = useState<string | null>(null);
+  const [addingCol, setAddingCol] = useState<string | null>(null);
+  const [newTitle, setNewTitle] = useState("");
+  const [newPriority, setNewPriority] = useState("med");
+  const [newTag, setNewTag] = useState("");
   const [, startUpdate] = useTransition();
+
+  // Keep local state in sync with fresh server data after router.refresh()
+  useEffect(() => {
+    setItems(tasks);
+  }, [tasks]);
 
   function onDrop(status: string) {
     if (!dragId) return;
@@ -37,6 +48,25 @@ export default function TaskBoard({
     setItems((prev) => prev.map((t) => (t.id === id ? { ...t, status } : t)));
     startUpdate(async () => {
       await updateTaskStatus(id, status);
+    });
+  }
+
+  function resetForm() {
+    setAddingCol(null);
+    setNewTitle("");
+    setNewPriority("med");
+    setNewTag("");
+  }
+
+  function handleAddTask(status: string) {
+    const title = newTitle.trim();
+    if (!title) return;
+    const priority = newPriority;
+    const tag = newTag.trim() || null;
+    resetForm();
+    startUpdate(async () => {
+      await createTask(title, status, priority, tag);
+      router.refresh();
     });
   }
 
@@ -82,6 +112,66 @@ export default function TaskBoard({
                 </div>
               ))}
           </div>
+
+          {addingCol === col.key ? (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleAddTask(col.key);
+              }}
+              className="mt-2 space-y-2 rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-600 dark:bg-slate-800"
+            >
+              <input
+                autoFocus
+                type="text"
+                placeholder="Task title"
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+                className="w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 text-sm outline-none focus:border-lime-400 dark:border-slate-600 dark:bg-slate-950 dark:text-white"
+              />
+              <div className="flex gap-2">
+                <select
+                  value={newPriority}
+                  onChange={(e) => setNewPriority(e.target.value)}
+                  className="rounded-md border border-slate-200 bg-white px-2 py-1.5 text-xs outline-none focus:border-lime-400 dark:border-slate-600 dark:bg-slate-950 dark:text-white"
+                >
+                  <option value="low">low</option>
+                  <option value="med">med</option>
+                  <option value="high">high</option>
+                </select>
+                <input
+                  type="text"
+                  placeholder="tag (optional)"
+                  value={newTag}
+                  onChange={(e) => setNewTag(e.target.value)}
+                  className="min-w-0 flex-1 rounded-md border border-slate-200 bg-white px-2 py-1.5 text-xs outline-none focus:border-lime-400 dark:border-slate-600 dark:bg-slate-950 dark:text-white"
+                />
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="submit"
+                  disabled={!newTitle.trim()}
+                  className="rounded-md bg-lime-400 px-3 py-1.5 text-xs font-semibold text-slate-900 transition hover:bg-lime-300 disabled:opacity-60"
+                >
+                  Add
+                </button>
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  className="rounded-md px-3 py-1.5 text-xs font-semibold text-slate-500 transition hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          ) : (
+            <button
+              onClick={() => setAddingCol(col.key)}
+              className="mt-2 w-full rounded-lg border border-dashed border-slate-300 px-3 py-2 text-xs font-semibold text-slate-500 transition hover:border-lime-400 hover:text-lime-600 dark:border-slate-600 dark:text-slate-400 dark:hover:border-lime-400 dark:hover:text-lime-400"
+            >
+              + Add task
+            </button>
+          )}
         </div>
       ))}
     </div>

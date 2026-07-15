@@ -13,7 +13,9 @@ export default async function ChangelogPage() {
   const { data: entries } = await supabase
     .from("changelog")
     .select("id, version, label, notes")
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false }) as {
+    data: ChangelogEntry[] | null;
+  };
 
   return (
     <div className="mx-auto max-w-4xl p-6">
@@ -26,7 +28,7 @@ export default async function ChangelogPage() {
         </p>
       </div>
 
-      <ChangelogList entries={(entries ?? []) as ChangelogEntry[]} />
+      <ChangelogList entries={entries ?? []} />
     </div>
   );
 }

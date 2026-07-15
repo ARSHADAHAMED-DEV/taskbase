@@ -1,39 +1,152 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Icon from "@/components/icon";
+import {
+  createChecklist,
+  updateChecklistItems,
+  deleteChecklist,
+  addChecklistItem,
+  deleteChecklistItem,
+} from "./checklists/actions";
 
-interface DashboardProps {
-  docs: { id: string; title: string }[];
-  tasks: { id: string; title: string; status: string }[];
-  bugs: { id: string; title: string; severity: string; status: string }[];
+interface Checklist {
+  id: string;
+  title: string;
+  items: Array<{ text: string; done: boolean }>;
 }
 
-export default function Dashboard({ docs, tasks, bugs }: DashboardProps) {
+interface DashboardProps {
+  tasks: { id: string; title: string; status: string }[];
+  tasksCompleted: number;
+  tasksInProgress: number;
+  openBugs: number;
+  highSevBugs: number;
+  commandsCount: number;
+  runbooksCount: number;
+  docsCount: number;
+  checklists: Checklist[];
+}
+
+export default function Dashboard({
+  tasks,
+  tasksCompleted,
+  tasksInProgress,
+  openBugs,
+  highSevBugs,
+  commandsCount,
+  runbooksCount,
+  docsCount,
+  checklists: initialChecklists,
+}: DashboardProps) {
   const sprintDay = Math.min(30, Math.max(1, 5));
   const daysLeft = 30 - sprintDay;
-  const tasksCompleted = tasks.filter((t) => t.status === "done").length;
-  const openBugs = bugs.filter((b) => b.status !== "Fixed").length;
-  const highSevBugs = bugs.filter((b) => b.severity === "High" && b.status !== "Fixed")
-    .length;
+  const totalTasks = tasks.length;
 
-  const [standup, setStandup] = useState([
-    { text: "Finish tasks board drag-drop", done: false },
-    { text: "Wire Stripe webhook handler", done: false },
-    { text: "Review Gemini's schema notes", done: true },
-  ]);
+  const router = useRouter();
+  const [checklists, setChecklists] = useState(initialChecklists);
+  const [newChecklistTitle, setNewChecklistTitle] = useState("");
+  const [newItemText, setNewItemText] = useState<Record<string, string>>({});
+  const [pending, startTransition] = useTransition();
+  const [dateStr, setDateStr] = useState("");
 
-  const [ship, setShip] = useState([
-    { text: "Migrations run on staging", done: true },
-    { text: "Env vars set in Vercel", done: true },
-    { text: "CI is green", done: false },
-    { text: "Smoke-test checkout", done: false },
-  ]);
+  useEffect(() => {
+    setDateStr(
+      new Date().toLocaleDateString(undefined, {
+        weekday: "long",
+        month: "short",
+        day: "numeric",
+      })
+    );
+  }, []);
 
-  const toggleChecklist = (arr: typeof standup, setArr: any, i: number) => {
-    setArr(arr.map((x, j) => (j === i ? { ...x, done: !x.done } : x)));
-  };
+  // Sync fresh server data into local state after router.refresh()
+  useEffect(() => {
+    setChecklists(initialChecklists);
+  }, [initialChecklists]);
+
+  function handleCheckItem(checklistId: string, itemIndex: number) {
+    const updatedChecklists = checklists.map((c) =>
+      c.id === checklistId
+        ? {
+            ...c,
+            items: c.items.map((item, i) =>
+              i === itemIndex ? { ...item, done: !item.done } : item
+            ),
+          }
+        : c
+    );
+    setChecklists(updatedChecklists);
+
+    const checklist = updatedChecklists.find((c) => c.id === checklistId);
+    if (!checklist) return;
+
+    startTransition(async () => {
+      await updateChecklistItems(checklistId, checklist.items);
+      router.refresh();
+    });
+  }
+
+  function handleCreateChecklist(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!newChecklistTitle.trim()) return;
+
+    startTransition(async () => {
+      const fd = new FormData();
+      fd.set("title", newChecklistTitle);
+      await createChecklist(fd);
+      setNewChecklistTitle("");
+      router.refresh();
+    });
+  }
+
+  function handleDeleteChecklist(checklistId: string) {
+    startTransition(async () => {
+      await deleteChecklist(checklistId);
+      router.refresh();
+    });
+  }
+
+  function handleAddItem(checklistId: string) {
+    const text = newItemText[checklistId]?.trim();
+    if (!text) return;
+
+    const checklist = checklists.find((c) => c.id === checklistId);
+    if (!checklist) return;
+
+    const updatedItems = [...checklist.items, { text, done: false }];
+
+    setChecklists((prev) =>
+      prev.map((c) =>
+        c.id === checklistId ? { ...c, items: updatedItems } : c
+      )
+    );
+
+    setNewItemText((prev) => ({ ...prev, [checklistId]: "" }));
+
+    startTransition(async () => {
+      await addChecklistItem(checklistId, updatedItems);
+      router.refresh();
+    });
+  }
+
+  function handleDeleteItem(checklistId: string, itemIndex: number) {
+    const checklist = checklists.find((c) => c.id === checklistId);
+    if (!checklist) return;
+
+    const updatedItems = checklist.items.filter((_, i) => i !== itemIndex);
+    const updatedChecklists = checklists.map((c) =>
+      c.id === checklistId ? { ...c, items: updatedItems } : c
+    );
+    setChecklists(updatedChecklists);
+
+    startTransition(async () => {
+      await deleteChecklistItem(checklistId, updatedItems);
+      router.refresh();
+    });
+  }
 
   const velocity = [3, 5, 2, 6, 4];
   const maxVelocity = Math.max(...velocity);
@@ -45,11 +158,7 @@ export default function Dashboard({ docs, tasks, bugs }: DashboardProps) {
           Dashboard
         </h1>
         <p className="text-sm text-slate-500 dark:text-slate-400">
-          {new Date().toLocaleDateString(undefined, {
-            weekday: "long",
-            month: "short",
-            day: "numeric",
-          })}
+          {dateStr || "—"}
         </p>
       </div>
 
@@ -65,7 +174,7 @@ export default function Dashboard({ docs, tasks, bugs }: DashboardProps) {
             <StatTile
               tone="sky"
               label="Tasks completed"
-              value={`${tasksCompleted} / ${tasks.length}`}
+              value={`${tasksCompleted} / ${totalTasks}`}
               sub="+2 today"
             />
             <StatTile
@@ -111,10 +220,10 @@ export default function Dashboard({ docs, tasks, bugs }: DashboardProps) {
             </div>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {[
-                ["tasks", "Tasks board", "3 in progress"],
-                ["runbooks", "Runbooks", "3 saved"],
-                ["commands", "Commands", "6 snippets"],
-                ["docs", "Docs", "3 documents"],
+                ["tasks", "Tasks board", `${tasksInProgress} in progress`],
+                ["runbooks", "Runbooks", `${runbooksCount} saved`],
+                ["commands", "Commands", `${commandsCount} snippet${commandsCount !== 1 ? "s" : ""}`],
+                ["docs", "Docs", `${docsCount} document${docsCount !== 1 ? "s" : ""}`],
               ].map(([icon, name, desc]) => (
                 <Link
                   key={icon}
@@ -148,73 +257,124 @@ export default function Dashboard({ docs, tasks, bugs }: DashboardProps) {
             </Link>
           </div>
 
-          <div className="rounded-2xl bg-white p-5 dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800 shadow-sm">
-            <h2 className="mb-3 text-base font-bold text-slate-900 dark:text-slate-100">
-              Today's standup
-            </h2>
-            <div className="space-y-2">
-              {standup.map((s, i) => (
-                <label
-                  key={i}
-                  className="flex cursor-pointer items-center gap-3 text-sm"
-                >
-                  <input
-                    type="checkbox"
-                    checked={s.done}
-                    onChange={() => toggleChecklist(standup, setStandup, i)}
-                    className="h-4 w-4 accent-lime-500"
-                  />
-                  <span
-                    className={
-                      s.done
-                        ? "text-slate-400 line-through"
-                        : "text-slate-700 dark:text-slate-300"
-                    }
-                  >
-                    {s.text}
-                  </span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <div className="rounded-2xl bg-white p-5 dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800 shadow-sm">
-            <h2 className="mb-3 text-base font-bold text-slate-900 dark:text-slate-100">
-              Ship checklist
-            </h2>
-            <div className="space-y-2">
-              {ship.map((s, i) => (
-                <label
-                  key={i}
-                  className="flex cursor-pointer items-center gap-3 text-sm"
-                >
-                  <input
-                    type="checkbox"
-                    checked={s.done}
-                    onChange={() => toggleChecklist(ship, setShip, i)}
-                    className="h-4 w-4 accent-lime-500"
-                  />
-                  <span
-                    className={
-                      s.done
-                        ? "text-slate-400 line-through"
-                        : "text-slate-700 dark:text-slate-300"
-                    }
-                  >
-                    {s.text}
-                  </span>
-                </label>
-              ))}
-            </div>
-            <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-              <div
-                className="h-full bg-lime-400 transition-all"
-                style={{
-                  width: `${(ship.filter((s) => s.done).length / ship.length) * 100}%`,
-                }}
+          <form
+            onSubmit={handleCreateChecklist}
+            className="rounded-2xl bg-white p-5 dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800 shadow-sm"
+          >
+            <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">
+              New checklist
+            </label>
+            <div className="mt-2 flex gap-2">
+              <input
+                type="text"
+                placeholder="e.g., Release checklist"
+                value={newChecklistTitle}
+                onChange={(e) => setNewChecklistTitle(e.target.value)}
+                className="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-lime-400 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
               />
+              <button
+                type="submit"
+                disabled={pending || !newChecklistTitle.trim()}
+                className="rounded-lg bg-lime-400 px-3 py-2 text-sm font-semibold text-slate-900 transition hover:bg-lime-300 disabled:opacity-60"
+              >
+                +
+              </button>
             </div>
-          </div>
+          </form>
+
+          {checklists.map((checklist) => (
+            <div
+              key={checklist.id}
+              className="rounded-2xl bg-white p-5 dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800 shadow-sm"
+            >
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
+                  {checklist.title}
+                </h2>
+                <button
+                  onClick={() => handleDeleteChecklist(checklist.id)}
+                  className="text-slate-400 hover:text-rose-500 transition"
+                  title="Delete checklist"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="space-y-2">
+                {checklist.items.map((item, i) => (
+                  <div
+                    key={i}
+                    className="flex cursor-pointer items-center gap-3 text-sm group"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={item.done}
+                      onChange={() => handleCheckItem(checklist.id, i)}
+                      className="h-4 w-4 accent-lime-500"
+                    />
+                    <span
+                      className={
+                        item.done
+                          ? "flex-1 text-slate-400 line-through"
+                          : "flex-1 text-slate-700 dark:text-slate-300"
+                      }
+                    >
+                      {item.text}
+                    </span>
+                    <button
+                      onClick={() => handleDeleteItem(checklist.id, i)}
+                      className="text-slate-300 hover:text-rose-500 transition opacity-0 group-hover:opacity-100"
+                      title="Delete item"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleAddItem(checklist.id);
+                }}
+                className="mt-3 flex gap-2"
+              >
+                <input
+                  type="text"
+                  placeholder="Add item..."
+                  value={newItemText[checklist.id] || ""}
+                  onChange={(e) =>
+                    setNewItemText({ ...newItemText, [checklist.id]: e.target.value })
+                  }
+                  className="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-lime-400 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                />
+                <button
+                  type="submit"
+                  disabled={!newItemText[checklist.id]?.trim()}
+                  className="rounded-lg bg-lime-400 px-3 py-2 text-sm font-semibold text-slate-900 transition hover:bg-lime-300 disabled:opacity-60"
+                >
+                  +
+                </button>
+              </form>
+              {checklist.items.length > 0 && (
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                  <div
+                    className="h-full bg-lime-400 transition-all"
+                    style={{
+                      width: `${(checklist.items.filter((i) => i.done).length / checklist.items.length) * 100}%`,
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          ))}
+
+          {checklists.length === 0 && (
+            <div className="rounded-2xl bg-slate-50 p-5 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50 text-center">
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                No checklists yet. Create one to get started.
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>
