@@ -10,10 +10,8 @@ const NAV_ITEMS = [
   { href: "/docs", label: "Docs", icon: "docs" as const },
   { href: "/runbooks", label: "Runbooks", icon: "runbooks" as const },
   { href: "/commands", label: "Commands", icon: "commands" as const },
-  { href: "/roadmap", label: "Roadmap", icon: "roadmap" as const },
   { href: "/bugs", label: "Bugs", icon: "bugs" as const },
   { href: "/changelog", label: "Changelog", icon: "changelog" as const },
-  { href: "/resources", label: "Resources", icon: "resources" as const },
   { href: "/prompts", label: "Prompts", icon: "prompts" as const },
 ];
 
