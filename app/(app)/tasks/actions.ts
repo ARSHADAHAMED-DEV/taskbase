@@ -53,15 +53,20 @@ export async function createTask(
     .maybeSingle();
   const position = (last?.position ?? 0) + 1;
 
-  const { error } = await supabase.from("tasks").insert({
-    user_id: user.id,
-    title: trimmed,
-    status,
-    priority,
-    tag: tag?.trim() || null,
-    position,
-  });
+  const { data, error } = await supabase
+    .from("tasks")
+    .insert({
+      user_id: user.id,
+      title: trimmed,
+      status,
+      priority,
+      tag: tag?.trim() || null,
+      position,
+    })
+    .select()
+    .single();
   if (error) throw new Error(error.message);
 
   revalidatePath("/tasks");
+  return data;
 }

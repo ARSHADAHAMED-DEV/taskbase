@@ -15,9 +15,11 @@ export async function createChecklist(formData: FormData) {
 
   if (!user) throw new Error("Not authenticated");
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("checklists")
-    .insert({ user_id: user.id, title, items: [] });
+    .insert({ user_id: user.id, title, items: [] })
+    .select()
+    .single();
 
   if (error) {
     const msg = typeof error === "object" && error !== null && "message" in error
@@ -27,6 +29,7 @@ export async function createChecklist(formData: FormData) {
   }
 
   revalidatePath("/");
+  return data;
 }
 
 export async function updateChecklistItems(id: string, items: Array<{ text: string; done: boolean }>) {

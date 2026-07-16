@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
 import { updateTaskStatus, createTask } from "./actions";
 
 type Task = {
@@ -27,7 +26,6 @@ export default function TaskBoard({
   columns: readonly Column[];
   tasks: Task[];
 }) {
-  const router = useRouter();
   const [items, setItems] = useState(tasks);
   const [dragId, setDragId] = useState<string | null>(null);
   const [addingCol, setAddingCol] = useState<string | null>(null);
@@ -35,11 +33,6 @@ export default function TaskBoard({
   const [newPriority, setNewPriority] = useState("med");
   const [newTag, setNewTag] = useState("");
   const [, startUpdate] = useTransition();
-
-  // Keep local state in sync with fresh server data after router.refresh()
-  useEffect(() => {
-    setItems(tasks);
-  }, [tasks]);
 
   function onDrop(status: string) {
     if (!dragId) return;
@@ -65,8 +58,10 @@ export default function TaskBoard({
     const tag = newTag.trim() || null;
     resetForm();
     startUpdate(async () => {
-      await createTask(title, status, priority, tag);
-      router.refresh();
+      const created = await createTask(title, status, priority, tag);
+      if (created) {
+        setItems((prev) => [...prev, created as Task]);
+      }
     });
   }
 

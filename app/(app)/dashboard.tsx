@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useTransition, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Icon from "@/components/icon";
 import {
@@ -45,7 +44,6 @@ export default function Dashboard({
   const daysLeft = 30 - sprintDay;
   const totalTasks = tasks.length;
 
-  const router = useRouter();
   const [checklists, setChecklists] = useState(initialChecklists);
   const [newChecklistTitle, setNewChecklistTitle] = useState("");
   const [newItemText, setNewItemText] = useState<Record<string, string>>({});
@@ -61,11 +59,6 @@ export default function Dashboard({
       })
     );
   }, []);
-
-  // Sync fresh server data into local state after router.refresh()
-  useEffect(() => {
-    setChecklists(initialChecklists);
-  }, [initialChecklists]);
 
   function handleCheckItem(checklistId: string, itemIndex: number) {
     const updatedChecklists = checklists.map((c) =>
@@ -85,7 +78,6 @@ export default function Dashboard({
 
     startTransition(async () => {
       await updateChecklistItems(checklistId, checklist.items);
-      router.refresh();
     });
   }
 
@@ -93,19 +85,21 @@ export default function Dashboard({
     e.preventDefault();
     if (!newChecklistTitle.trim()) return;
 
+    setNewChecklistTitle("");
     startTransition(async () => {
       const fd = new FormData();
       fd.set("title", newChecklistTitle);
-      await createChecklist(fd);
-      setNewChecklistTitle("");
-      router.refresh();
+      const created = await createChecklist(fd);
+      if (created) {
+        setChecklists((prev) => [...prev, created as Checklist]);
+      }
     });
   }
 
   function handleDeleteChecklist(checklistId: string) {
+    setChecklists((prev) => prev.filter((c) => c.id !== checklistId));
     startTransition(async () => {
       await deleteChecklist(checklistId);
-      router.refresh();
     });
   }
 
@@ -128,7 +122,6 @@ export default function Dashboard({
 
     startTransition(async () => {
       await addChecklistItem(checklistId, updatedItems);
-      router.refresh();
     });
   }
 
@@ -144,7 +137,6 @@ export default function Dashboard({
 
     startTransition(async () => {
       await deleteChecklistItem(checklistId, updatedItems);
-      router.refresh();
     });
   }
 
