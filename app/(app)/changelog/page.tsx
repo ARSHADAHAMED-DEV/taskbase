@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import PageHead from "@/components/page-head";
 import ChangelogList from "./list";
 
 type ChangelogEntry = {
@@ -18,17 +19,11 @@ export default async function ChangelogPage() {
   };
 
   return (
-    <div className="mx-auto max-w-4xl p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100">
-          Changelog
-        </h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          Dated release notes across the sprint
-        </p>
+    <>
+      <PageHead kicker="Dated release notes across the sprint" title="Changelog" />
+      <div className="scroll">
+        <ChangelogList entries={entries ?? []} />
       </div>
-
-      <ChangelogList entries={entries ?? []} />
-    </div>
+    </>
   );
 }

@@ -1,20 +1,28 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Poppins, Manrope, JetBrains_Mono } from "next/font/google";
 import { ThemeProvider } from "@/app/lib/theme-context";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const display = Poppins({
+  variable: "--font-display",
   subsets: ["latin"],
+  weight: ["300", "400", "500", "600"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const body = Manrope({
+  variable: "--font-body",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+});
+
+const mono = JetBrains_Mono({
+  variable: "--font-mono",
+  subsets: ["latin"],
+  weight: ["400", "500"],
 });
 
 export const metadata: Metadata = {
-  title: "taskbase",
+  title: "Taskbase — Command Center",
   description: "Internal command center",
 };
 
@@ -27,7 +35,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${display.variable} ${body.variable} ${mono.variable} h-full antialiased`}
     >
       <head>
         <script
@@ -37,7 +45,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="min-h-full bg-white dark:bg-slate-950">
+      <body className="min-h-full">
         <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>

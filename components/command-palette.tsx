@@ -10,40 +10,31 @@ interface CommandPaletteProps {
 }
 
 const COMMANDS = [
-  { category: "Navigate", label: "Dashboard", href: "/" },
-  { category: "Navigate", label: "Tasks", href: "/tasks" },
-  { category: "Navigate", label: "Docs", href: "/docs" },
-  { category: "Navigate", label: "Runbooks", href: "/runbooks" },
-  { category: "Navigate", label: "Commands", href: "/commands" },
-  { category: "Navigate", label: "Roadmap", href: "/roadmap" },
-  { category: "Navigate", label: "Bugs", href: "/bugs" },
-  { category: "Navigate", label: "Changelog", href: "/changelog" },
-  { category: "Navigate", label: "Resources", href: "/resources" },
-  { category: "Navigate", label: "Prompts", href: "/prompts" },
+  { category: "Go to", label: "Dashboard", href: "/" },
+  { category: "Go to", label: "Tasks", href: "/tasks" },
+  { category: "Go to", label: "Docs", href: "/docs" },
+  { category: "Go to", label: "Runbooks", href: "/runbooks" },
+  { category: "Go to", label: "Commands", href: "/commands" },
+  { category: "Go to", label: "Roadmap", href: "/roadmap" },
+  { category: "Go to", label: "Bugs", href: "/bugs" },
+  { category: "Go to", label: "Changelog", href: "/changelog" },
+  { category: "Go to", label: "Resources", href: "/resources" },
+  { category: "Go to", label: "Prompts", href: "/prompts" },
 ];
 
 export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
   const [q, setQ] = useState("");
+  const [active, setActive] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
   useEffect(() => {
     if (open) {
       setQ("");
+      setActive(0);
       setTimeout(() => inputRef.current?.focus(), 30);
     }
   }, [open]);
-
-  useEffect(() => {
-    function onKeyDown(e: KeyboardEvent) {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-        e.preventDefault();
-      }
-      if (e.key === "Escape") onClose();
-    }
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onClose]);
 
   const items = COMMANDS.filter((cmd) =>
     (cmd.label + cmd.category).toLowerCase().includes(q.toLowerCase())
@@ -57,49 +48,51 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
   if (!open) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-4 pt-24"
-      onClick={onClose}
-    >
-      <div
-        className="w-full max-w-lg overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center gap-2 border-b border-slate-200 px-4 dark:border-slate-800">
-          <Icon name="search" className="h-4 w-4 text-slate-400" />
+    <div className="scrim" onClick={onClose}>
+      <div className="palette fade" onClick={(e) => e.stopPropagation()}>
+        <div className="p-in">
+          <Icon name="search" size={16} />
           <input
             ref={inputRef}
             value={q}
-            onChange={(e) => setQ(e.target.value)}
+            onChange={(e) => {
+              setQ(e.target.value);
+              setActive(0);
+            }}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && items[0]) {
-                handleSelect(items[0].href);
+              if (e.key === "Enter" && items[active]) {
+                handleSelect(items[active].href);
               }
               if (e.key === "Escape") onClose();
+              if (e.key === "ArrowDown") {
+                e.preventDefault();
+                setActive((i) => Math.min(i + 1, items.length - 1));
+              }
+              if (e.key === "ArrowUp") {
+                e.preventDefault();
+                setActive((i) => Math.max(i - 1, 0));
+              }
             }}
-            placeholder="Search or jump…"
-            className="w-full bg-transparent py-3 text-sm outline-none dark:text-slate-200"
+            placeholder="Search, jump to a section…"
           />
-          <kbd className="rounded border border-slate-200 px-1.5 text-[10px] text-slate-400 dark:border-slate-700">
-            esc
-          </kbd>
+          <kbd>ESC</kbd>
         </div>
 
-        <div className="max-h-72 overflow-y-auto p-2">
+        <div className="p-list">
           {items.map((item, i) => (
             <button
               key={i}
               onClick={() => handleSelect(item.href)}
-              className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm hover:bg-slate-100 dark:hover:bg-slate-800"
+              onMouseEnter={() => setActive(i)}
+              className="p-item"
+              style={i === active ? { background: "var(--sunk)" } : undefined}
             >
-              <span className="text-slate-700 dark:text-slate-200">{item.label}</span>
-              <span className="text-xs text-slate-500 dark:text-slate-400">
-                {item.category}
-              </span>
+              <span className="t">{item.label}</span>
+              <span className="k">{item.category}</span>
             </button>
           ))}
           {!items.length && (
-            <p className="px-3 py-6 text-center text-sm text-slate-500 dark:text-slate-400">
+            <p className="dim" style={{ padding: 32, textAlign: "center", fontSize: 13 }}>
               Nothing found.
             </p>
           )}

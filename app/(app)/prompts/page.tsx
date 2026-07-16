@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import PageHead from "@/components/page-head";
 import PromptsList from "./list";
 
 type Prompt = {
@@ -15,17 +16,11 @@ export default async function PromptsPage() {
     .order("created_at", { ascending: false });
 
   return (
-    <div className="mx-auto max-w-6xl p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100">
-          Prompts
-        </h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          Your reusable Claude + Gemini prompts
-        </p>
+    <>
+      <PageHead kicker="Your reusable Claude + Gemini prompts" title="Prompts" />
+      <div className="scroll">
+        <PromptsList prompts={(prompts ?? []) as Prompt[]} />
       </div>
-
-      <PromptsList prompts={(prompts ?? []) as Prompt[]} />
-    </div>
+    </>
   );
 }

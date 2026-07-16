@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import PageHead from "@/components/page-head";
 import BugsList from "./list";
 
 type Bug = {
@@ -19,16 +20,11 @@ export default async function BugsPage() {
   };
 
   return (
-    <div className="mx-auto max-w-4xl p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100">
-          Bugs
-        </h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          Lightweight issue log — click a status to advance it
-        </p>
+    <>
+      <PageHead kicker="Lightweight issue log — click a status to advance it" title="Bugs" />
+      <div className="scroll">
+        <BugsList bugs={bugs ?? []} />
       </div>
-      <BugsList bugs={bugs ?? []} />
-    </div>
+    </>
   );
 }

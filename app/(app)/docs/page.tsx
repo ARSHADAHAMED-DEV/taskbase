@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import Icon from "@/components/icon";
+import PageHead from "@/components/page-head";
 import { createDocAction } from "./actions";
 
 export default async function DocsPage() {
@@ -10,42 +12,34 @@ export default async function DocsPage() {
     .order("updated_at", { ascending: false });
 
   return (
-    <div className="mx-auto max-w-4xl p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100">
-            Docs
-          </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            ADRs, dev logs and runbooks in markdown
-          </p>
-        </div>
-        <form action={createDocAction}>
-          <button className="rounded-lg bg-lime-400 px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-lime-300">
-            + New doc
-          </button>
-        </form>
-      </div>
-
-      <div className="space-y-2">
+    <>
+      <PageHead
+        kicker="ADRs, dev logs and runbooks in markdown"
+        title="Docs"
+        right={
+          <form action={createDocAction}>
+            <button className="btn" type="submit">
+              <Icon name="plus" size={13} />
+              New doc
+            </button>
+          </form>
+        }
+      />
+      <div className="scroll">
         {(docs ?? []).map((d) => (
-          <Link
-            key={d.id}
-            href={`/docs/${d.slug}`}
-            className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 transition hover:border-lime-300 dark:border-slate-700 dark:bg-slate-900"
-          >
-            <span className="font-semibold text-slate-800 dark:text-white">{d.title}</span>
-            <span className="text-xs text-slate-400">
+          <Link key={d.id} href={`/docs/${d.slug}`} className="row">
+            <h5>{d.title}</h5>
+            <span className="dim" style={{ fontSize: 11.5 }}>
               {d.category} · {d.status}
             </span>
           </Link>
         ))}
         {(!docs || docs.length === 0) && (
-          <p className="rounded-xl border border-dashed border-slate-300 px-4 py-10 text-center text-sm text-slate-500 dark:border-slate-700">
-            No docs yet. Hit "New doc" to create your first one.
+          <p className="dim" style={{ textAlign: "center", fontSize: 13, padding: "40px 0" }}>
+            No docs yet. Hit “New doc” to create your first one.
           </p>
         )}
       </div>
-    </div>
+    </>
   );
 }

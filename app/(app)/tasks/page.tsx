@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import PageHead from "@/components/page-head";
 import TaskBoard from "./board";
 
 const COLUMNS = [
@@ -18,16 +19,11 @@ export default async function TasksPage() {
     .order("position", { ascending: true });
 
   return (
-    <div className="mx-auto max-w-6xl p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100">
-          Tasks
-        </h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          Drag cards between columns to update status
-        </p>
+    <>
+      <PageHead kicker="Drag cards between columns to update status" title="Tasks" />
+      <div className="scroll">
+        <TaskBoard columns={COLUMNS} tasks={tasks ?? []} />
       </div>
-      <TaskBoard columns={COLUMNS} tasks={tasks ?? []} />
-    </div>
+    </>
   );
 }

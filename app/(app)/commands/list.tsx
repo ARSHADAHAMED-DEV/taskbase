@@ -38,68 +38,56 @@ export default function CommandsList({ commands: initialCommands }: { commands: 
   );
 
   return (
-    <div className="space-y-4">
-      <form
-        onSubmit={handleCreate}
-        className="rounded-2xl bg-white p-4 dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800 shadow-sm"
-      >
-        <div className="space-y-3">
+    <div className="stack">
+      <form onSubmit={handleCreate} className="panel">
+        <div className="ptitle">
+          <h3>New command</h3>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <input className="inp" placeholder="Label…" value={label} onChange={(e) => setLabel(e.target.value)} />
           <input
-            type="text"
-            placeholder="Label..."
-            value={label}
-            onChange={(e) => setLabel(e.target.value)}
-            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-lime-400 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-          />
-          <input
-            type="text"
-            placeholder="Command..."
+            className="inp mono"
+            placeholder="Command…"
             value={cmd}
             onChange={(e) => setCmd(e.target.value)}
-            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-mono outline-none focus:border-lime-400 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
           />
-          <input
-            type="text"
-            placeholder="Tag (optional)..."
-            value={tag}
-            onChange={(e) => setTag(e.target.value)}
-            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-lime-400 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-          />
-          <button
-            type="submit"
-            disabled={pending || !label.trim() || !cmd.trim()}
-            className="rounded-lg bg-lime-400 px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-lime-300 disabled:opacity-60"
-          >
-            {pending ? "Adding…" : "+ New command"}
-          </button>
+          <div style={{ display: "flex", gap: 10 }}>
+            <input
+              className="inp"
+              style={{ flex: 1 }}
+              placeholder="Tag (optional)…"
+              value={tag}
+              onChange={(e) => setTag(e.target.value)}
+            />
+            <button className="btn" type="submit" disabled={pending || !label.trim() || !cmd.trim()}>
+              <Icon name="plus" size={13} />
+              {pending ? "Adding…" : "New command"}
+            </button>
+          </div>
         </div>
       </form>
 
-      <div className="relative">
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Filter…"
-          className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-lime-400 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
-        />
-      </div>
+      <input
+        className="inp"
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+        placeholder="Filter…"
+      />
 
-      <div className="space-y-2">
+      <div>
         {list.map((c) => (
           <CommandCard
             key={c.id}
             command={c}
-            onDelete={() => setCommands((prev) => prev.filter((cmd) => cmd.id !== c.id))}
+            onDelete={() => setCommands((prev) => prev.filter((x) => x.id !== c.id))}
             onUpdate={(updated) =>
-              setCommands((prev) =>
-                prev.map((cmd) => (cmd.id === c.id ? updated : cmd))
-              )
+              setCommands((prev) => prev.map((x) => (x.id === c.id ? updated : x)))
             }
           />
         ))}
         {!list.length && (
-          <p className="px-2 py-8 text-center text-sm text-slate-500 dark:text-slate-400">
-            No commands match "{q}".
+          <p className="dim" style={{ textAlign: "center", fontSize: 13, padding: "32px 0" }}>
+            No commands match “{q}”.
           </p>
         )}
       </div>
@@ -121,7 +109,6 @@ function CommandCard({
   const [editLabel, setEditLabel] = useState(command.label);
   const [editCmd, setEditCmd] = useState(command.cmd);
   const [editTag, setEditTag] = useState(command.tag);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   function copy() {
@@ -151,57 +138,31 @@ function CommandCard({
 
   async function handleDelete() {
     if (!window.confirm("Delete this command?")) return;
-    setIsDeleting(true);
-    try {
-      const fd = new FormData();
-      fd.set("id", command.id);
-      await deleteCommand(fd);
-      onDelete();
-    } catch (e) {
-      console.error("Error deleting command:", e);
-    } finally {
-      setIsDeleting(false);
-    }
+    const fd = new FormData();
+    fd.set("id", command.id);
+    await deleteCommand(fd);
+    onDelete();
   }
 
   if (isEditing) {
     return (
-      <div className="rounded-2xl bg-white p-4 dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800 shadow-sm">
-        <div className="space-y-3">
-          <input
-            type="text"
-            value={editLabel}
-            onChange={(e) => setEditLabel(e.target.value)}
-            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-lime-400 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-          />
-          <input
-            type="text"
-            value={editCmd}
-            onChange={(e) => setEditCmd(e.target.value)}
-            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-mono outline-none focus:border-lime-400 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-          />
-          <input
-            type="text"
-            value={editTag}
-            onChange={(e) => setEditTag(e.target.value)}
-            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-lime-400 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-          />
-          <div className="flex gap-2">
-            <button
-              onClick={handleSave}
-              disabled={isSaving || !editLabel.trim() || !editCmd.trim()}
-              className="rounded-lg bg-lime-400 px-3 py-1.5 text-xs font-semibold text-slate-900 transition hover:bg-lime-300 disabled:opacity-60"
-            >
+      <div className="panel" style={{ marginBottom: 9 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <input className="inp" value={editLabel} onChange={(e) => setEditLabel(e.target.value)} />
+          <input className="inp mono" value={editCmd} onChange={(e) => setEditCmd(e.target.value)} />
+          <input className="inp" value={editTag} onChange={(e) => setEditTag(e.target.value)} />
+          <div style={{ display: "flex", gap: 8 }}>
+            <button className="btn" onClick={handleSave} disabled={isSaving || !editLabel.trim() || !editCmd.trim()}>
               {isSaving ? "Saving…" : "Save"}
             </button>
             <button
+              className="btn ghost"
               onClick={() => {
                 setIsEditing(false);
                 setEditLabel(command.label);
                 setEditCmd(command.cmd);
                 setEditTag(command.tag);
               }}
-              className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 dark:border-slate-700 dark:text-slate-400"
             >
               Cancel
             </button>
@@ -212,40 +173,26 @@ function CommandCard({
   }
 
   return (
-    <div className="flex items-center justify-between gap-4 rounded-2xl bg-white p-4 dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800 shadow-sm">
-      <div className="min-w-0">
-        <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
-          {command.label}{" "}
-          <span className="rounded-full px-2 py-1 text-[11px] font-semibold inline-block ml-2 bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">
-            #{command.tag}
-          </span>
-        </p>
-        <p className="font-mono mt-1 truncate text-xs text-lime-700 dark:text-lime-300">
-          $ {command.cmd}
+    <div className="row">
+      <div style={{ minWidth: 0 }}>
+        <h5>
+          {command.label}
+          <span className="pill">#{command.tag}</span>
+        </h5>
+        <p className="cmdline">
+          <em>$</em> {command.cmd}
         </p>
       </div>
-      <div className="flex items-center gap-2 shrink-0">
-        <button
-          onClick={copy}
-          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-xs text-slate-500 hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
-        >
-          <Icon name="copy" className="h-3.5 w-3.5" />
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+        <button className="btn ghost" onClick={copy}>
+          <Icon name={copied ? "check" : "copy"} size={13} />
           {copied ? "Copied" : "Copy"}
         </button>
-        <button
-          onClick={() => setIsEditing(true)}
-          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-xs text-slate-500 hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
-          title="Edit"
-        >
-          <Icon name="commands" className="h-3.5 w-3.5" />
+        <button className="iconbtn" onClick={() => setIsEditing(true)} title="Edit">
+          <Icon name="commands" size={13} />
         </button>
-        <button
-          onClick={handleDelete}
-          disabled={isDeleting}
-          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-xs text-rose-500 hover:bg-rose-50 dark:border-slate-700 dark:hover:bg-slate-800 disabled:opacity-60"
-          title="Delete"
-        >
-          <Icon name="x" className="h-3.5 w-3.5" />
+        <button className="iconbtn" onClick={handleDelete} title="Delete">
+          <Icon name="trash" size={13} />
         </button>
       </div>
     </div>

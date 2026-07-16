@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Icon from "@/components/icon";
 import { updateTaskStatus, createTask } from "./actions";
 
 type Task = {
@@ -13,11 +14,8 @@ type Task = {
 };
 type Column = { key: string; label: string };
 
-const PRIORITY_STYLES: Record<string, string> = {
-  low: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
-  med: "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-200",
-  high: "bg-rose-100 text-rose-700 dark:bg-rose-900 dark:text-rose-200",
-};
+const PRI_LABEL: Record<string, string> = { low: "Low", med: "Med", high: "High" };
+const PRI_CLASS: Record<string, string> = { low: "p-low", med: "p-med", high: "p-high" };
 
 export default function TaskBoard({
   columns,
@@ -28,147 +26,142 @@ export default function TaskBoard({
 }) {
   const [items, setItems] = useState(tasks);
   const [dragId, setDragId] = useState<string | null>(null);
+  const [over, setOver] = useState<string | null>(null);
   const [addingCol, setAddingCol] = useState<string | null>(null);
   const [newTitle, setNewTitle] = useState("");
-  const [newPriority, setNewPriority] = useState("med");
-  const [newTag, setNewTag] = useState("");
   const [, startUpdate] = useTransition();
 
   function onDrop(status: string) {
-    if (!dragId) return;
+    if (!dragId) {
+      setOver(null);
+      return;
+    }
     const id = dragId;
     setDragId(null);
+    setOver(null);
     setItems((prev) => prev.map((t) => (t.id === id ? { ...t, status } : t)));
     startUpdate(async () => {
       await updateTaskStatus(id, status);
     });
   }
 
-  function resetForm() {
+  function handleAddTask(status: string, title: string) {
+    const trimmed = title.trim();
     setAddingCol(null);
     setNewTitle("");
-    setNewPriority("med");
-    setNewTag("");
-  }
-
-  function handleAddTask(status: string) {
-    const title = newTitle.trim();
-    if (!title) return;
-    const priority = newPriority;
-    const tag = newTag.trim() || null;
-    resetForm();
+    if (!trimmed) return;
     startUpdate(async () => {
-      const created = await createTask(title, status, priority, tag);
-      if (created) {
-        setItems((prev) => [...prev, created as Task]);
-      }
+      const created = await createTask(trimmed, status, "med", null);
+      if (created) setItems((prev) => [...prev, created as Task]);
     });
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      {columns.map((col) => (
-        <div
-          key={col.key}
-          onDragOver={(e) => e.preventDefault()}
-          onDrop={() => onDrop(col.key)}
-          className="rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-900"
-        >
-          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-            {col.label}
-          </h2>
-          <div className="space-y-2">
-            {items
-              .filter((t) => t.status === col.key)
-              .map((task) => (
-                <div
+    <div className="board">
+      {columns.map((col) => {
+        const list = items.filter((t) => t.status === col.key);
+        return (
+          <section
+            key={col.key}
+            className={"col " + (over === col.key && dragId ? "over" : "")}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setOver(col.key);
+            }}
+            onDragLeave={() => setOver((c) => (c === col.key ? null : c))}
+            onDrop={() => onDrop(col.key)}
+          >
+            <div className="col-head">
+              <div className="l">
+                <h4>{col.label}</h4>
+                <span className="count">{list.length}</span>
+              </div>
+              <button className="iconbtn" onClick={() => setAddingCol(col.key)}>
+                <Icon name="plus" size={13} />
+              </button>
+            </div>
+            <div className="col-body">
+              {addingCol === col.key && (
+                <div className="tcard p-med" style={{ cursor: "default" }}>
+                  <textarea
+                    autoFocus
+                    rows={2}
+                    placeholder="Task title, then Enter"
+                    style={{
+                      width: "100%",
+                      border: 0,
+                      background: "transparent",
+                      resize: "none",
+                      outline: "none",
+                      fontFamily: "var(--display)",
+                      fontWeight: 500,
+                      fontSize: 13,
+                      color: "var(--ink)",
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        handleAddTask(col.key, (e.target as HTMLTextAreaElement).value);
+                      }
+                      if (e.key === "Escape") {
+                        setAddingCol(null);
+                        setNewTitle("");
+                      }
+                    }}
+                    onChange={(e) => setNewTitle(e.target.value)}
+                    onBlur={(e) => handleAddTask(col.key, e.target.value)}
+                    value={newTitle}
+                  />
+                </div>
+              )}
+              {list.map((task) => (
+                <article
                   key={task.id}
                   draggable
+                  className={
+                    "tcard " +
+                    (PRI_CLASS[task.priority] ?? "p-med") +
+                    (dragId === task.id ? " drag" : "")
+                  }
                   onDragStart={() => setDragId(task.id)}
-                  className="cursor-grab rounded-lg border border-slate-200 bg-white p-3 shadow-sm active:cursor-grabbing dark:border-slate-600 dark:bg-slate-800"
+                  onDragEnd={() => {
+                    setDragId(null);
+                    setOver(null);
+                  }}
                 >
-                  <p className="text-sm font-semibold text-slate-800 dark:text-white">
-                    {task.title}
-                  </p>
-                  <div className="mt-2 flex items-center gap-2">
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                        PRIORITY_STYLES[task.priority] ?? PRIORITY_STYLES.med
-                      }`}
+                  <div className="top">
+                    <span className="glyph">#{(task.tag ?? "new").slice(0, 3)}</span>
+                    <button
+                      className={"tick " + (task.status === "done" ? "on" : "")}
+                      onClick={() => {
+                        const next = task.status === "done" ? "doing" : "done";
+                        setItems((prev) =>
+                          prev.map((x) => (x.id === task.id ? { ...x, status: next } : x))
+                        );
+                        startUpdate(async () => {
+                          await updateTaskStatus(task.id, next);
+                        });
+                      }}
                     >
-                      {task.priority}
-                    </span>
-                    {task.tag && (
-                      <span className="text-[10px] text-slate-400 dark:text-slate-500">
-                        #{task.tag}
-                      </span>
-                    )}
+                      <Icon name="check" size={11} />
+                    </button>
                   </div>
-                </div>
+                  <h5>{task.title}</h5>
+                  <div className="meta">
+                    {task.tag && <span className="tag">#{task.tag}</span>}
+                    <span className="tag">{PRI_LABEL[task.priority] ?? "Med"}</span>
+                  </div>
+                </article>
               ))}
-          </div>
-
-          {addingCol === col.key ? (
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleAddTask(col.key);
-              }}
-              className="mt-2 space-y-2 rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-600 dark:bg-slate-800"
-            >
-              <input
-                autoFocus
-                type="text"
-                placeholder="Task title"
-                value={newTitle}
-                onChange={(e) => setNewTitle(e.target.value)}
-                className="w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 text-sm outline-none focus:border-lime-400 dark:border-slate-600 dark:bg-slate-950 dark:text-white"
-              />
-              <div className="flex gap-2">
-                <select
-                  value={newPriority}
-                  onChange={(e) => setNewPriority(e.target.value)}
-                  className="rounded-md border border-slate-200 bg-white px-2 py-1.5 text-xs outline-none focus:border-lime-400 dark:border-slate-600 dark:bg-slate-950 dark:text-white"
-                >
-                  <option value="low">low</option>
-                  <option value="med">med</option>
-                  <option value="high">high</option>
-                </select>
-                <input
-                  type="text"
-                  placeholder="tag (optional)"
-                  value={newTag}
-                  onChange={(e) => setNewTag(e.target.value)}
-                  className="min-w-0 flex-1 rounded-md border border-slate-200 bg-white px-2 py-1.5 text-xs outline-none focus:border-lime-400 dark:border-slate-600 dark:bg-slate-950 dark:text-white"
-                />
-              </div>
-              <div className="flex gap-2">
-                <button
-                  type="submit"
-                  disabled={!newTitle.trim()}
-                  className="rounded-md bg-lime-400 px-3 py-1.5 text-xs font-semibold text-slate-900 transition hover:bg-lime-300 disabled:opacity-60"
-                >
-                  Add
+              {!list.length && addingCol !== col.key && (
+                <button className="emptycol" onClick={() => setAddingCol(col.key)}>
+                  Add the first task
                 </button>
-                <button
-                  type="button"
-                  onClick={resetForm}
-                  className="rounded-md px-3 py-1.5 text-xs font-semibold text-slate-500 transition hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          ) : (
-            <button
-              onClick={() => setAddingCol(col.key)}
-              className="mt-2 w-full rounded-lg border border-dashed border-slate-300 px-3 py-2 text-xs font-semibold text-slate-500 transition hover:border-lime-400 hover:text-lime-600 dark:border-slate-600 dark:text-slate-400 dark:hover:border-lime-400 dark:hover:text-lime-400"
-            >
-              + Add task
-            </button>
-          )}
-        </div>
-      ))}
+              )}
+            </div>
+          </section>
+        );
+      })}
     </div>
   );
 }

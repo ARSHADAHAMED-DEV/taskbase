@@ -1,9 +1,11 @@
 "use client";
 
+import PageHead from "@/components/page-head";
+
 const LANES = [
-  { id: "now", label: "Now" },
-  { id: "next", label: "Next" },
-  { id: "later", label: "Later" },
+  { id: "now", label: "Now", tone: "t-peach" },
+  { id: "next", label: "Next", tone: "t-sky" },
+  { id: "later", label: "Later", tone: "t-mint" },
 ];
 
 const ROADMAP_ITEMS = [
@@ -18,38 +20,32 @@ const ROADMAP_ITEMS = [
 
 export default function RoadmapPage() {
   return (
-    <div className="mx-auto max-w-6xl p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100">
-          Roadmap
-        </h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          Now / Next / Later — what the sprint is aiming at
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        {LANES.map((lane) => (
-          <div
-            key={lane.id}
-            className="rounded-2xl bg-slate-100/70 p-3 dark:bg-slate-900/40"
-          >
-            <p className="mb-3 px-1 text-sm font-bold text-slate-700 dark:text-slate-200">
-              {lane.label}
-            </p>
-            <div className="space-y-2">
-              {ROADMAP_ITEMS.filter((r) => r.lane === lane.id).map((r) => (
-                <div
-                  key={r.id}
-                  className="rounded-2xl bg-white p-3 text-sm font-medium text-slate-800 dark:bg-slate-900 dark:text-slate-200 border border-slate-200/70 dark:border-slate-800 shadow-sm"
-                >
-                  {r.title}
+    <>
+      <PageHead kicker="Now / Next / Later — what the sprint is aiming at" title="Roadmap" />
+      <div className="scroll">
+        <div className="g3">
+          {LANES.map((lane) => {
+            const list = ROADMAP_ITEMS.filter((r) => r.lane === lane.id);
+            return (
+              <section key={lane.id} className="col">
+                <div className="col-head">
+                  <div className="l">
+                    <h4>{lane.label}</h4>
+                    <span className="count">{list.length}</span>
+                  </div>
                 </div>
-              ))}
-            </div>
-          </div>
-        ))}
+                <div className="col-body">
+                  {list.map((r) => (
+                    <article key={r.id} className={"tcard " + lane.tone} style={{ cursor: "default" }}>
+                      <h5>{r.title}</h5>
+                    </article>
+                  ))}
+                </div>
+              </section>
+            );
+          })}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
