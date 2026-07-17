@@ -54,6 +54,7 @@ const ICONS = {
   x: ["M18 6L6 18", "M6 6l12 12"],
   trash: ["M4 7h16", "M9 7V4h6v3", "M6 7l1 13h10l1-13"],
   menu: ["M3 6h18", "M3 12h18", "M3 18h18"],
+  edit: ["M4 20h4L18.5 9.5a2.12 2.12 0 0 0-3-3L5 17v3z", "M13.5 6.5l3 3"],
 };
 
 export interface IconProps {

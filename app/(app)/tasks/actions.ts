@@ -70,3 +70,33 @@ export async function createTask(
   revalidatePath("/tasks");
   return data;
 }
+
+// Edits an existing task's title, priority, and tag (not its column).
+export async function updateTask(
+  id: string,
+  fields: { title: string; priority: string; tag: string | null }
+) {
+  const trimmed = fields.title.trim();
+  if (!trimmed) throw new Error("Title is required");
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("tasks")
+    .update({
+      title: trimmed,
+      priority: fields.priority,
+      tag: fields.tag?.trim() || null,
+    })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/tasks");
+}
+
+export async function deleteTask(id: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("tasks").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/tasks");
+}
