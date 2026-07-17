@@ -15,7 +15,7 @@ export async function login(formData: FormData) {
   });
   if (error) redirect("/login?error=" + encodeURIComponent(error.message));
   revalidatePath("/", "layout");
-  redirect("/docs");
+  redirect("/");
 }
 
 export async function signup(formData: FormData) {
@@ -28,7 +28,7 @@ export async function signup(formData: FormData) {
   // If email confirmations are ON in Supabase, there's no session yet.
   // For a solo internal tool, turn confirmations OFF (see README).
   revalidatePath("/", "layout");
-  redirect("/docs");
+  redirect("/");
 }
 
 export async function signout() {
